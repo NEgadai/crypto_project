@@ -7,6 +7,7 @@ import csv
 from retry import retry
 from flask import Flask, render_template, request, send_file
 from concurrent.futures.thread import ThreadPoolExecutor
+from decimal import Decimal
 
 
 app = Flask(__name__)
@@ -122,9 +123,16 @@ def check_addresses(path: str):
         print('########## [4/4] Starting Check Staking ##########')
         for worker in workers:
             worker.result()
+        total_of_values()
         results_dict_to_list()
         download_output_file()
         print('########## Completed ##########')
+
+
+def total_of_values():
+    for wallet in results_wallets:
+        sum = Decimal(results_wallets[wallet]['balance']) + Decimal(results_wallets[wallet]['lp']) + Decimal(results_wallets[wallet]['staking_1']) + Decimal(results_wallets[wallet]['staking_2']) + Decimal(results_wallets[wallet]['staking_3'])
+        results_wallets[wallet]['total'] = sum
 
 
 def init_result_dict(wallet: str):
@@ -134,6 +142,7 @@ def init_result_dict(wallet: str):
     results_wallets[wallet]['staking_1'] = 0.0
     results_wallets[wallet]['staking_2'] = 0.0
     results_wallets[wallet]['staking_3'] = 0.0
+    results_wallets[wallet]['total'] = 0.0
 
 
 @retry(exceptions=Exception, tries=3, delay=2, jitter=2)
@@ -154,7 +163,7 @@ def stack_of_function(wallet: str):
 
 def download_output_file():
     try:
-        fields = ['wallet', 'balance', 'lp', 'staking_1', 'staking_2', 'staking_3']
+        fields = ['wallet', 'balance', 'lp', 'staking_1', 'staking_2', 'staking_3', 'total']
         with open('output.csv', 'w', newline='', encoding="utf8") as f:
             write = csv.writer(f)
             write.writerow(fields)
@@ -171,7 +180,8 @@ def results_dict_to_list():
         staking_1 = results_wallets[data]['staking_1']
         staking_2 = results_wallets[data]['staking_2']
         staking_3 = results_wallets[data]['staking_3']
-        line = [wallet, balance, lp, staking_1, staking_2, staking_3]
+        total = results_wallets[data]['total']
+        line = [wallet, balance, lp, staking_1, staking_2, staking_3, total]
         result_list.append(line)
 
 
